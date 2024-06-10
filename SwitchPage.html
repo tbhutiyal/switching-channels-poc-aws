@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Camera Feed Switcher</title>
+    <style>
+        body { font-family: Arial, sans-serif; }
+        button { margin: 5px; padding: 10px 20px; }
+        video { width: 100%; height: auto; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script>
+        async function switchFeed(targetChannel) {
+            const video = document.getElementById('videoPlayer');
+            try {
+                const response = await fetch('http://localhost:3000/switch-input', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ target_channel: targetChannel })
+                });
+
+                const data = await response.json();
+                console.log('Success:', data);
+
+                // Assuming the video URL is the same, otherwise update it accordingly
+                if (Hls.isSupported()) {
+                    const hls = new Hls();
+                    hls.loadSource(video.src);
+                    hls.attachMedia(video);
+                    hls.on(Hls.Events.MANIFEST_PARSED, function() {
+                        video.play();
+                    });
+                } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                    video.src = video.src; // Reload the video source
+                    video.addEventListener('loadedmetadata', function() {
+                        video.play();
+                    });
+                }
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        // Load the initial video
+        window.onload = () => switchFeed('CHANNEL_1');
+    </script>
+</head>
+<body>
+    <h1>Camera Feed Switcher</h1>
+    <button onclick="switchFeed('CHANNEL_1')">Switch to Channel 01</button>
+    <button onclick="switchFeed('CHANNEL_2')">Switch to Channel 02</button>
+
+    <video id="videoPlayer" controls>
+        <source id="videoSource" src="https://8572e342e3eeb5c4.mediapackage.us-east-1.amazonaws.com/out/v1/e6463fe785b14b94b9929e9b7bb3d05c/index.m3u8" type="application/x-mpegURL">
+        Your browser does not support the video tag.
+    </video>
+</body>
+</html>
